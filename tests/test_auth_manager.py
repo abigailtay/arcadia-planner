@@ -8,7 +8,7 @@ test_db = "test_arcadia.db"
 def setup_module(module):
     if os.path.exists(test_db):
         os.remove(test_db)
-    db = DatabaseManager(db_path=test_db)
+    db = DatabaseManager(test_db)
     db.connect()
     db.create_tables()
     db.disconnect()
@@ -17,27 +17,34 @@ def teardown_module(module):
     if os.path.exists(test_db):
         os.remove(test_db)
 
-def test_create_and_login_user():
+def test_create_user():
     auth = AuthManager(db_path=test_db)
-    username = "testuser"
-    password = "SafePass123!"
-    # Create user
-    result = auth.create_user(username, password)
-    assert result["success"]
-    # Correct login
-    login = auth.login_user(username, password)
-    assert login["success"]
-    # Wrong password
-    bad_login = auth.login_user(username, "badpass")
-    assert not bad_login["success"]
+    result = auth.create_user("userA", "SecretPass#1")
+    assert result["success"] is True
     auth.close()
 
 def test_duplicate_user():
     auth = AuthManager(db_path=test_db)
-    username = "repeat"
-    password = "Password!1"
-    result1 = auth.create_user(username, password)
-    result2 = auth.create_user(username, password)
-    assert result1["success"]
-    assert not result2["success"]  # Duplicate user should fail
+    auth.create_user("duplicate", "SecretPass#2")
+    again = auth.create_user("duplicate", "Other#2")
+    assert again["success"] is False
     auth.close()
+
+def test_login_user():
+    auth = AuthManager(db_path=test_db)
+    auth.create_user("loginname", "LogPass992!")
+    good = auth.login_user("loginname", "LogPass992!")
+    bad = auth.login_user("loginname", "wrong!")
+    assert good["success"] is True
+    assert bad["success"] is False
+    auth.close()
+
+def test_get_user():
+    auth = AuthManager(db_path=test_db)
+    new = auth.create_user("fetch", "Pass1Key!")
+    uid = new.get("user_id")
+    found = auth.get_user(uid)
+    assert found["success"] is True
+    assert found["user"]["username"] == "fetch"
+    auth.close()
+
