@@ -33,3 +33,5 @@ htmlcov/
 
 # OS
 Thumbs.db
+arcadia.db
+*.db
