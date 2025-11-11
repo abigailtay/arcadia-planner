@@ -1,0 +1,8 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.0, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/ataylor/Desktop/arcadia-planner
+collected 5 items
+
+tests/TaskManager/test_task_api.py .....                                 [100%]
+
+============================== 5 passed in 0.14s ===============================
