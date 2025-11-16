@@ -1,0 +1,10 @@
+INFO     root:test_task_api.py:25 Status: 201
+INFO     root:test_task_api.py:27 JSON: {'success': True, 'taskId': 7}
+INFO     root:test_task_api.py:25 Status: 200
+INFO     root:test_task_api.py:27 JSON: {'success': True, 'tasks': [{'category': None, 'colorShade': 3, 'description': None, 'doDate': None, 'dueDate': None, 'orderIndex': 0, 'taskId': 7, 'title': 'Regression Test Task', 'url': None, 'userId': 1}, {'category': 'Work', 'colorShade': 2, 'description': 'Testing', 'doDate': '2024-06-30', 'dueDate': '2024-07-01', 'orderIndex': 1, 'taskId': 2, 'title': 'Test Task', 'url': 'http://test.com', 'userId': 1}, {'category': 'school', 'colorShade': 2, 'description': 'Math exercises', 'doDate': '2024-07-23', 'dueDate': '2024-07-25', 'orderIndex': 1, 'taskId': 3, 'title': 'Do homework', 'url': 'http://test.com', 'userId': 1}, {'category': 'Work', 'colorShade': 2, 'description': 'Testing', 'doDate': '2024-06-30', 'dueDate': '2024-07-01', 'orderIndex': 1, 'taskId': 4, 'title': 'Test Task', 'url': 'http://test.com', 'userId': 1}, {'category': 'Work', 'colorShade': 2, 'description': 'Testing', 'doDate': '2024-06-30', 'dueDate': '2024-07-01', 'orderIndex': 1, 'taskId': 5, 'title': 'Test Task', 'url': 'http://test.com', 'userId': 1}]}
+INFO     root:test_task_api.py:25 Status: 200
+INFO     root:test_task_api.py:27 JSON: {'success': True}
+INFO     root:test_task_api.py:25 Status: 200
+INFO     root:test_task_api.py:27 JSON: {'success': True}
+INFO     root:test_task_api.py:25 Status: 200
+INFO     root:test_task_api.py:27 JSON: {'success': True}
