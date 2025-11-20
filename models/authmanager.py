@@ -1,8 +1,18 @@
-import logging
+"""
+File: authmanager.py
+Author: Allyson Taylor
+Date: 2025-11-20
+Description:
+    Authentication backend logic for registration, login,
+    password verification, and token sessions.
+    Handles user and token database management.
+"""
+
+import sqlite3
 import bcrypt
 import secrets
+import logging
 from datetime import datetime, timedelta
-import sqlite3
 
 logging.basicConfig(filename='logs/errors.log', level=logging.ERROR)
 DB_PATH = 'arcadia.db'
@@ -15,7 +25,7 @@ class AuthManager:
         self.db_path = db_path
 
     def _get_conn(self):
-        return sqlite3.connect(self.db_path, timeout=10)  # Timeout to wait for locked DB
+        return sqlite3.connect(self.db_path, timeout=10)
 
     def hash_password(self, plain_pw):
         salt = bcrypt.gensalt()
@@ -27,12 +37,25 @@ class AuthManager:
         except Exception:
             return False
 
-    def login(self, username, password, remember_me=False):
-        """Returns session token if successful. Optionally issues long-lived token."""
+    def register_user(self, username, password):
         try:
             with self._get_conn() as conn:
                 c = conn.cursor()
-                c.execute('SELECT id, password FROM user WHERE username=?', (username,))
+                hashed_pw = self.hash_password(password)
+                c.execute('INSERT INTO user (username, password) VALUES (?, ?)', (username, hashed_pw))
+                conn.commit()
+        except Exception as e:
+            logging.error(f'Registration failed: {e}')
+            raise AuthError(f'Registration failed: {e}')
+
+    def login(self, username, password, remember_me=False):
+        """
+        Returns session token if successful.
+        """
+        try:
+            with self._get_conn() as conn:
+                c = conn.cursor()
+                c.execute('SELECT userId, password FROM user WHERE username=?', (username,))
                 row = c.fetchone()
                 if not row:
                     raise AuthError('Invalid credentials.')
@@ -41,7 +64,6 @@ class AuthManager:
                     raise AuthError('Invalid credentials.')
                 token = secrets.token_urlsafe(32)
                 expires = datetime.utcnow() + (timedelta(days=14) if remember_me else timedelta(hours=1))
-                # Remove any previous tokens for this user (cleanup)
                 c.execute('DELETE FROM auth_tokens WHERE user_id=?', (user_id,))
                 c.execute('INSERT INTO auth_tokens (token, user_id, expires_at) VALUES (?, ?, ?)',
                           (token, user_id, expires.strftime('%Y-%m-%d %H:%M:%S')))
@@ -62,7 +84,6 @@ class AuthManager:
                 user_id, expires = row
                 expires_dt = datetime.strptime(expires, '%Y-%m-%d %H:%M:%S')
                 if datetime.utcnow() > expires_dt:
-                    # Token has expired, cleanup
                     c.execute('DELETE FROM auth_tokens WHERE token=?', (token,))
                     conn.commit()
                     raise AuthError('Token expired.')
@@ -72,7 +93,6 @@ class AuthManager:
             raise AuthError(f'Token validation failed: {e}')
 
     def logout(self, token):
-        """Remove session/persistent token from database."""
         try:
             with self._get_conn() as conn:
                 c = conn.cursor()
@@ -81,14 +101,3 @@ class AuthManager:
         except Exception as e:
             logging.error(f'Logout failed: {e}')
             raise AuthError(f'Logout failed: {e}')
-
-    def register_user(self, username, password):
-        try:
-            with self._get_conn() as conn:
-                c = conn.cursor()
-                hashed_pw = self.hash_password(password)
-                c.execute('INSERT INTO user (username, password) VALUES (?, ?)', (username, hashed_pw))
-                conn.commit()
-        except Exception as e:
-            logging.error(f'Registration failed: {e}')
-            raise AuthError(f'Registration failed: {e}')
