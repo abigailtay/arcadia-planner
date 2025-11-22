@@ -23,23 +23,30 @@ class StudySessionModel:
 
 
     def log_session(self, user_id:int, start_time:str, end_time:str, pomodoro_setting:str) -> bool:
-        """Log a study session for a user with pomodoro timer setting."""
-        duration = self._calculate_duration(start_time, end_time)
-        streak = self._calculate_streak(user_id, end_time)
-        xp_earned = self._calculate_xp(duration, streak)
-
-
+        # Input validation
+        if not user_id or not start_time or not end_time or not pomodoro_setting:
+            return False
         try:
+            duration = self._calculate_duration(start_time, end_time)
+            if duration < 5:
+                print("Error logging session: Duration too short")
+                return False
+            if duration <= 0:
+                print("Error logging session: End time before start time")
+                return False
+            streak = self._calculate_streak(user_id, end_time)
+            xp_earned = self._calculate_xp(duration, streak)
             self.cursor.execute("""
-                INSERT INTO study_sessions (userId, startTime, endTime, duration, streakTimer, xpEarned, pomodoroSetting)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (user_id, start_time, end_time, duration, streak, xp_earned, pomodoro_setting))
+            INSERT INTO study_sessions (userId, startTime, endTime, duration, streakTimer, xpEarned, pomodoroSetting)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, start_time, end_time, duration, streak, xp_earned, pomodoro_setting))
             self.conn.commit()
             self._update_user_rewards(user_id, xp_earned)
             return True
         except Exception as e:
             print(f"Error logging session: {e}")
             return False
+
 
 
     def _calculate_duration(self, start_time:str, end_time:str) -> int:

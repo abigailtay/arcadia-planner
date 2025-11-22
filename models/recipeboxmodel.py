@@ -26,6 +26,8 @@ class RecipeBoxModel:
         return sqlite3.connect(self.db_path, timeout=10)
 
     def add_recipe(self, title, instructions=None, categoryId=None, subcategoryId=None, stickerId=None, measurement=None):
+        if not title or str(title).strip() == "":
+            raise ValueError("Recipe title required")
         measurement_val = None
         if measurement is not None:
             try:
@@ -36,9 +38,9 @@ class RecipeBoxModel:
             c = conn.cursor()
             c.execute(
                 '''INSERT INTO recipes (title, instructions, categoryId, subcategoryId, stickerId, measurement)
-                   VALUES (?, ?, ?, ?, ?, ?)''',
-                (title, instructions, categoryId, subcategoryId, stickerId, measurement_val)
-            )
+                VALUES (?, ?, ?, ?, ?, ?)''',
+            (title, instructions, categoryId, subcategoryId, stickerId, measurement_val)
+        )
             recipe_id = c.lastrowid
             conn.commit()
         return recipe_id

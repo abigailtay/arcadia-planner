@@ -59,6 +59,51 @@ def analytics():
     category = request.args.get('category')
     summary = budget_model.analytics(trans_type, category)
     return jsonify(success=True, summary=summary), 200
+@app.route('/savings/goals', methods=['POST'])
+def create_savings_goal():
+    data = request.get_json()
+    required = ['userId', 'name', 'targetAmount']
+    if not all(field in data and data[field] for field in required):
+        return jsonify(success=False, error="Missing fields"), 400
+    goal_id = budget_model.create_savings_goal(
+        data['userId'], data['name'], data['targetAmount'],
+        data.get('deadline'), data.get('notes')
+    )
+    return jsonify(success=True, goalId=goal_id), 201
+
+@app.route('/savings/goals/<int:user_id>', methods=['GET'])
+def list_goals(user_id):
+    goals = budget_model.get_goals(user_id)
+    return jsonify(success=True, goals=goals), 200
+
+@app.route('/savings/goal/<int:goal_id>', methods=['GET'])
+def get_goal(goal_id):
+    goal = budget_model.get_goal(goal_id)
+    if not goal:
+        return jsonify(success=False, error="Goal not found"), 404
+    return jsonify(success=True, goal=goal), 200
+
+@app.route('/savings/contribute', methods=['POST'])
+def contribute_to_goal():
+    data = request.get_json()
+    try:
+        amt = float(data['amount'])
+        new_amt = budget_model.contribute_to_goal(
+            data['goalId'], data['userId'], amt, data.get('direction', 'deposit')
+        )
+        return jsonify(success=True, newAmount=new_amt), 200
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 400
+
+@app.route('/savings/goal/<int:goal_id>/transactions', methods=['GET'])
+def list_goal_transactions(goal_id):
+    txs = budget_model.list_goal_transactions(goal_id)
+    return jsonify(success=True, transactions=txs), 200
+
+@app.route('/savings/goal/<int:goal_id>', methods=['DELETE'])
+def delete_goal(goal_id):
+    budget_model.delete_goal(goal_id)
+    return jsonify(success=True), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5003)

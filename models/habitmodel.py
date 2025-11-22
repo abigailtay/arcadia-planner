@@ -37,14 +37,21 @@ class HabitModel:
         if start_date is not None and self.parse_date(start_date) is None:
             raise ValueError("Invalid startDate format")
 
-        with self._get_conn() as conn:
-            c = conn.cursor()
-            c.execute('''
-                INSERT INTO habits (userId, habitName, description, category, frequency, startDate, colorShade)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, habit_name, description, category, frequency, start_date, color_shade))
-            conn.commit()
-            return c.lastrowid
+        try:
+            with self._get_conn() as conn:
+                c = conn.cursor()
+                c.execute('''
+                    INSERT INTO habits (userId, habitName, description, category, frequency, startDate, colorShade)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, habit_name, description, category, frequency, start_date, color_shade))
+                conn.commit()
+                return c.lastrowid
+        except sqlite3.IntegrityError as e:
+            # Check for UNIQUE constraint error and give a helpful message
+            if "UNIQUE" in str(e).upper():
+                raise ValueError("Duplicate habit for user")
+            raise  # re-raise any other integrity error
+
 
     def get_habits(self, user_id):
         with self._get_conn() as conn:

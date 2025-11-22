@@ -1,3 +1,0 @@
-ERROR    root:authmanager.py:71 Token validation failed: Invalid or expired token.
-ERROR    root:authmanager.py:93 Registration failed: UNIQUE constraint failed: user.username
-ERROR    root:authmanager.py:71 Token validation failed: Token expired.

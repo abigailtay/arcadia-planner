@@ -101,3 +101,50 @@ class AuthManager:
         except Exception as e:
             logging.error(f'Logout failed: {e}')
             raise AuthError(f'Logout failed: {e}')
+       
+
+    def create_password_reset_token(self, username, expires_in_minutes=60):
+        """Generate and store a password reset token for the given user."""
+        with self._get_conn() as conn:
+            c = conn.cursor()
+            c.execute("SELECT userId FROM user WHERE username = ?", (username,))
+            row = c.fetchone()
+            if not row:
+                raise AuthError("User not found.")
+            user_id = row[0]
+            token = secrets.token_urlsafe(32)
+            expires_at = (datetime.utcnow() + timedelta(minutes=expires_in_minutes)).strftime('%Y-%m-%d %H:%M:%S')
+            c.execute("""
+                INSERT INTO password_reset_tokens (token, user_id, expires_at, used)
+                VALUES (?, ?, ?, 0)
+            """, (token, user_id, expires_at))
+            conn.commit()
+            return token
+
+    def validate_password_reset_token(self, token):
+        """Check if the reset token is valid, unexpired, and unused. Returns user_id if valid."""
+        with self._get_conn() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT user_id, expires_at, used FROM password_reset_tokens WHERE token=?
+            """, (token,))
+            row = c.fetchone()
+            if not row:
+                raise AuthError("Invalid reset token.")
+            user_id, expires_at, used = row
+            if used:
+                raise AuthError("Reset token already used.")
+            expires_dt = datetime.strptime(expires_at, '%Y-%m-%d %H:%M:%S')
+            if datetime.utcnow() > expires_dt:
+                raise AuthError("Reset token expired.")
+            return user_id
+
+    def mark_token_used(self, token):
+        """Mark a reset token as used after successful password change."""
+        with self._get_conn() as conn:
+            c = conn.cursor()
+            c.execute("""
+                UPDATE password_reset_tokens SET used=1 WHERE token=?
+            """, (token,))
+            conn.commit()
+

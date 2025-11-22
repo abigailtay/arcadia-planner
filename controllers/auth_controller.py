@@ -69,5 +69,30 @@ def logout():
 def health():
     return jsonify({"status": "ok"}), 200
 
+@app.route("/auth/request-password-reset", methods=["POST"])
+def request_password_reset():
+    data = request.get_json(force=True)
+    username = data.get("username", "")
+    if not username:
+        return jsonify({"error": "Missing username"}), 400
+    try:
+        token = auth_manager.create_password_reset_token(username)
+        # In real app, you'd email this token; for demo, return in response.
+        return jsonify({"resetToken": token}), 200
+    except AuthError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/auth/validate-password-reset", methods=["POST"])
+def validate_password_reset():
+    data = request.get_json(force=True)
+    token = data.get("token", "")
+    if not token:
+        return jsonify({"error": "Missing token"}), 400
+    try:
+        user_id = auth_manager.validate_password_reset_token(token)
+        return jsonify({"userId": user_id}), 200
+    except AuthError as e:
+        return jsonify({"error": str(e)}), 400
+
 if __name__ == "__main__":
     app.run(debug=True)
