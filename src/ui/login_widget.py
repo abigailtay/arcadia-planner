@@ -1,124 +1,71 @@
-from PyQt6.QtWidgets import (
-    QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QSizePolicy, QSpacerItem
-)
-from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtCore import Qt
+import sys
+import re
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox
+from PyQt6.QtCore import QTimer, Qt
 
 class LoginWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.username_valid = False
+        self.password_valid = False
         self.setup_ui()
 
     def setup_ui(self):
-        # Outer background (stretch and center everything)
-        outer = QVBoxLayout(self)
-        outer.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setStyleSheet("background: #fae2f7;")  # Only as frame accent
-
-        # Logo above card, adaptive size
-        logo = QLabel()
-        pixmap = QPixmap("assets/logo.jpeg")
-        if not pixmap.isNull():
-            logo_width = min(max(self.width() // 5, 70), 130)  # responsive to window size
-            pixmap = pixmap.scaled(logo_width, logo_width, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            logo.setPixmap(pixmap)
-        logo.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        logo.setStyleSheet("margin-bottom: 30px; margin-top:20px;")
-        outer.addWidget(logo, alignment=Qt.AlignmentFlag.AlignHCenter)
-
-        # Card (strong white pill w/ soft shadow), grows with window
-        card = QWidget()
-        card.setObjectName("arcadiaCard")
-        card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(28)
-        card_layout.setContentsMargins(64, 38, 64, 38) # Responsive padding
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        card.setStyleSheet('''
-            #arcadiaCard {
-                background: #fff;
-                border-radius: 32px;
-                border: 3px solid #e0b5db;
-                box-shadow: 0 12px 48px 0 #95506322;
-            }
-        ''')
-
-        # Inputs (pill, large, high contrast, responsive)
+        layout = QVBoxLayout(self)
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Username")
-        self.username_input.setMinimumHeight(54)
-        self.username_input.setFont(QFont("Arial", 18))
-        self.username_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        card_layout.addWidget(self.username_input)
+        self.username_input.setPlaceholderText("Username or Email")
+        self.username_input.textChanged.connect(self.validate_email_username)
+        layout.addWidget(self.username_input)
 
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Password")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setMinimumHeight(54)
-        self.password_input.setFont(QFont("Arial", 18))
-        self.password_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        card_layout.addWidget(self.password_input)
+        self.password_input.textChanged.connect(self.validate_password)
+        layout.addWidget(self.password_input)
 
-        # Pill-gradient buttons row
-        btn_row = QHBoxLayout()
-        btn_row.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.status_label = QLabel("")
+        layout.addWidget(self.status_label)
+
         self.login_button = QPushButton("Login")
-        self.register_button = QPushButton("Register")
-        for btn in [self.login_button, self.register_button]:
-            btn.setMinimumHeight(54)
-            btn.setMinimumWidth(160)
-            btn.setFont(QFont("Arial", 17, QFont.Weight.Bold))
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            btn.setStyleSheet('''
-                QPushButton {
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #d72660, stop:1 #f88379);
-                    color: #fff;
-                    border-radius: 27px;
-                    font-weight: bold;
-                    font-size: 18px;
-                    padding: 12px 40px;
-                    border: none;
-                    letter-spacing: 1.5px;
-                    box-shadow: 0 2px 8px #ecc4e099;
-                }
-                QPushButton:hover {
-                    background: #e24785;
-                }
-            ''')
-            btn_row.addWidget(btn)
-        btn_row.setSpacing(46)
-        card_layout.addLayout(btn_row)
-        outer.addWidget(card, alignment=Qt.AlignmentFlag.AlignHCenter)
-        outer.addStretch(1)
+        self.login_button.setEnabled(False)
+        self.login_button.clicked.connect(self._handle_login)
+        layout.addWidget(self.login_button)
 
-        # Inputs: maximum readable, responsive, accent on focus, visually separated
-        self.setStyleSheet(self.styleSheet() + '''
-        QLineEdit {
-            background: #fff; border: 3px solid #e3b6e9; border-radius: 27px;
-            color: #22172e; font-size: 18px; padding-left: 20px; margin-bottom: 18px;
-        }
-        QLineEdit:focus {
-            border: 3px solid #d72660; background: #fcf7fa;
-        }
-        QLineEdit::placeholder {
-            color: #786088; font-size: 18px;
-        }
-        ''')
+    def validate_email_username(self, text):
+        # Fixed regex
+        valid = bool(text) and (re.match(r"[^@]+@[^@]+\.[^@]+", text) or len(text) >= 4)
+        self.username_valid = valid
+        self.update_submit_state()
 
-    # Optionally, dynamically adjust logo on resize
-    def resizeEvent(self, event):
-        logo = self.findChild(QLabel)
-        pixmap = QPixmap("assets/logo.jpeg")
-        if logo and not pixmap.isNull():
-            width = self.width()
-            logo_w = min(max(width // 6, 80), 170)
-            logo.setPixmap(pixmap.scaled(logo_w, logo_w, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        super().resizeEvent(event)
+    def validate_password(self, text):
+        valid = bool(text) and len(text) >= 4
+        self.password_valid = valid
+        self.update_submit_state()
+
+    def update_submit_state(self):
+        self.login_button.setEnabled(self.username_valid and self.password_valid)
+
+    def _handle_login(self):
+        print("Login button pressed")
+        username = self.username_input.text().strip()
+        password = self.password_input.text()
+        self.login_button.setText("Logging in...")
+        self.login_button.setEnabled(False)
+        QTimer.singleShot(1000, lambda: self._check_login(username, password))
+
+    def _check_login(self, username, password):
+        print("Checking login for:", username, password)
+        if (username == "demo" or username == "demo@arcadia.com") and password == "1234":
+            self.status_label.setText("Login successful!")
+        else:
+            self.status_label.setText("Invalid credentials. Try again.")
+            QMessageBox.critical(self, "Login Failed", "Invalid credentials. Try again.")
+        self.login_button.setText("Login")
+        self.login_button.setEnabled(True)
 
 if __name__ == "__main__":
-    import sys
-    from PyQt6.QtWidgets import QApplication
     app = QApplication(sys.argv)
     w = LoginWidget()
-    w.showMaximized()  # Show the effect in a big window
+    w.resize(400, 200)
+    w.show()
     sys.exit(app.exec())
